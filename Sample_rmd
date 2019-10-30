@@ -33,10 +33,7 @@ train_model <- caret::train( model_1,
                              method="glmnet", 
                              trControl=control, 
                              tuneGrid = glmnet_grid)
-```
 
-
-```{r}
 # predict results:
 test$prediction <- predict(train_model, test)
 
