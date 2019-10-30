@@ -1,0 +1,48 @@
+# Sample model:
+pacman::p_load(glmnet, dplyr, mice, caret)
+
+test <- read.csv("test.csv")
+train <- read.csv("train.csv")
+
+model_1 <- total_cases ~ city + precipitation_amt_mm + station_avg_temp_c
+# lm model
+sample_model <- lm(model_1, data=train)
+test$prediction <- predict(sample_model, test)
+
+# crude imputation:
+train$precipitation_amt_mm[is.na(train$precipitation_amt_mm)] <- mean(train$precipitation_amt_mm, na.rm=T)
+
+train$station_avg_temp_c[is.na(train$station_avg_temp_c)] <- mean(train$station_avg_temp_c, na.rm=T)
+
+# test too
+test$precipitation_amt_mm[is.na(test$precipitation_amt_mm)] <- mean(test$precipitation_amt_mm, na.rm=T)
+
+test$station_avg_temp_c[is.na(test$station_avg_temp_c)] <- 
+  mean(test$station_avg_temp_c, na.rm=T)
+
+# simple model:
+glmnet_grid <- expand.grid(
+    alpha = c(0, .5, 1),
+    lambda= c(0, .5, 1))
+# cv params
+control <- trainControl(method = "cv", number = 5)
+
+# Train Model
+train_model <- caret::train( model_1, 
+                             data = train, 
+                             method="glmnet", 
+                             trControl=control, 
+                             tuneGrid = glmnet_grid)
+```
+
+
+```{r}
+# predict results:
+test$prediction <- predict(train_model, test)
+
+# Write submission file:
+test$prediction <- ifelse(is.na(test$prediction), 
+                          mean(test$prediction, na.rm=T), test$prediction)
+
+submission <- test %>% select(Id, prediction)
+write.csv(submission, file="my_submission.csv", row.names = F)
